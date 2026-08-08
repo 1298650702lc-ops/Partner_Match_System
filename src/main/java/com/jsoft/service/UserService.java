@@ -3,6 +3,8 @@ package com.jsoft.service;
 import com.jsoft.pojo.User;
 import com.baomidou.mybatisplus.extension.service.IService;
 
+import javax.servlet.http.HttpServletRequest;
+
 /**
 * @author F4EN
 * @description 用户服务
@@ -19,5 +21,14 @@ public interface UserService extends IService<User> {
      */
     Long userRegister(String userAccount, String userPassword,String checkPassword);
 
+    /**
+     * 用户登录
+     *
+     * @param userAccount 用户账户
+     * @param userPassword 用户密码
+     * @param request HTTP请求对象
+     * @return 用户信息
+     */
+    User userLogin(String userAccount, String userPassword, HttpServletRequest request);
 }
 
