@@ -38,7 +38,7 @@ public class SwaggerConfig {
      */
     public ApiInfo apiInfo() {
         return new ApiInfoBuilder().title("伙伴匹配系统")//// 设置文档的标题
-                .description("鱼皮用户中心接口文档")// 设置文档的描述->1.Overview
+                .description("伙伴匹配中心接口文档")// 设置文档的描述->1.Overview
                 .version("1.0")// 设置文档的版本信息
                 .contact(new Contact("F4EN", "https://github.com/1298650702lc-ops/Partner_Match_System", "xxx"))
                 .termsOfServiceUrl("https://github.com/1298650702lc-ops/Partner_Match_System")// 设置文档的License信息
