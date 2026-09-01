@@ -19,6 +19,15 @@ myAxios.interceptors.request.use(function (config) {
 myAxios.interceptors.response.use(function (response) {
     // 对响应数据做点什么
     console.log("我收到你的响应了,",response)
+    const body = response.data;
+    if (body && body.code === 40100) {
+        // 后端 Session 失效时，清理前端缓存并统一回到登录页。
+        sessionStorage.removeItem('partner-match.current-user');
+        window.dispatchEvent(new CustomEvent('partner-match:unauthorized'));
+        if (window.location.hash !== '#/user/login') {
+            window.location.hash = '#/user/login';
+        }
+    }
     // 保留 Axios 响应对象，调用方统一从 response.data 读取后端业务响应。
     return response;
 }, function (error) {

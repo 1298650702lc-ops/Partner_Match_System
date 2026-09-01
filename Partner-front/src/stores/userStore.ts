@@ -29,6 +29,10 @@ const setCurrentUser = (nextUser: CurrentUser | null) => {
 
 const clearCurrentUser = () => setCurrentUser(null)
 
+if (typeof window !== 'undefined') {
+  window.addEventListener('partner-match:unauthorized', clearCurrentUser)
+}
+
 const fetchCurrentUser = async (force = false): Promise<CurrentUser | null> => {
   if (user.value && !force) {
     return user.value

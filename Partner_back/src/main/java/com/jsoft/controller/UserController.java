@@ -11,13 +11,16 @@ import com.jsoft.pojo.User;
 import com.jsoft.pojo.request.UserLoginRequest;
 import com.jsoft.pojo.request.UserRegisterRequest;
 import com.jsoft.service.UserService;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.jsoft.Constant.UserConstant.USER_LOGIN_STATE;
@@ -27,11 +30,14 @@ import static com.jsoft.Constant.UserConstant.USER_LOGIN_STATE;
  *
  * @Author F4EN
  */
+@Slf4j
 @RestController
 @RequestMapping("/user")
 public class UserController {
     @Resource
     private UserService userService;
+    @Resource
+    private RedisTemplate<String, Object> redisTemplate;
 
     /**
      * 用户注册接口
@@ -200,11 +206,38 @@ public class UserController {
      */
     @GetMapping("/recommend")
     public BaseResponse<Page<User>> userSearch(long pageSize, long pageNum, HttpServletRequest request) {
-        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        Page<User> userList = userService.page(new Page<>(pageNum, pageSize), queryWrapper);
-        //处理为安全用户信息
-        List<User> safeUserList = userList.getRecords().stream().map(user -> userService.getSafeUser(user)).collect(Collectors.toList());
-        userList.setRecords(safeUserList);
+        if (pageSize <= 0 || pageNum <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "分页参数必须大于0");
+        }
+        User loginuser = (User) request.getSession().getAttribute(USER_LOGIN_STATE);
+        if (loginuser == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN, "用户未登录");
+        }
+        // 分页参数必须参与缓存 Key，否则第 1 页缓存会被后续页重复使用。
+        String redisKey = String.format(
+                "user:recommend:%s:%d:%d",
+                loginuser.getId(),
+                pageNum,
+                pageSize
+        );
+        Page<User> userList = (Page<User>) redisTemplate.opsForValue().get(redisKey);
+        //如果没有缓存，执行查询并创建缓存
+        if(userList == null){
+            QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+            userList = userService.page(new Page<>(pageNum, pageSize), queryWrapper);
+            // 先脱敏再写入缓存，避免 Redis 中保存用户密码等敏感字段。
+            if (userList.getRecords() != null) {
+                List<User> safeUserList = userList.getRecords().stream()
+                        .map(user -> userService.getSafeUser(user))
+                        .collect(Collectors.toList());
+                userList.setRecords(safeUserList);
+            }
+            try {
+                redisTemplate.opsForValue().set(redisKey, userList,30, TimeUnit.MINUTES);
+            } catch (Exception e) {
+                log.error("redis set Key error",e);
+            }
+        }
         return ResultUtil.success(userList);
     }
 }

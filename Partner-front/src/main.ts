@@ -18,6 +18,21 @@ const router = VueRouter.createRouter({
     routes, // `routes: routes` 的缩写
 })
 
+router.beforeEach((to) => {
+    const hasCachedUser = Boolean(sessionStorage.getItem('partner-match.current-user'));
+
+    if (to.meta.requiresAuth && !hasCachedUser) {
+        return {
+            path: '/user/login',
+            query: { redirect: to.fullPath },
+        };
+    }
+
+    if (to.path === '/user/login' && hasCachedUser) {
+        return '/';
+    }
+});
+
 app.use(router)
 
 app.mount('#app');
