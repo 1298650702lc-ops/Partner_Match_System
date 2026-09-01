@@ -1,6 +1,8 @@
 package com.jsoft.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.jsoft.Common.BaseResponse;
 import com.jsoft.Common.ErrorCode;
 import com.jsoft.Common.ResultUtil;
@@ -47,13 +49,14 @@ public class UserController {
         String checkPassword = userRegisterRequest.getCheckPassword();
         String planetCode = userRegisterRequest.getPlanetCode();
         if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword, planetCode)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR,"注册信息不正确");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "注册信息不正确");
         }
         return ResultUtil.success(userService.userRegister(userAccount, userPassword, checkPassword, planetCode));
     }
 
     /**
      * 用户登录接口
+     *
      * @param userLoginRequest
      * @param request
      * @return 登录用户信息
@@ -61,16 +64,16 @@ public class UserController {
     @PostMapping("/login")
     public BaseResponse<User> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
         if (userLoginRequest == null) {
-            throw new BusinessException(ErrorCode.NULL_ERROR,"登录信息为空");
+            throw new BusinessException(ErrorCode.NULL_ERROR, "登录信息为空");
         }
         String userAccount = userLoginRequest.getUserAccount();
         String userPassword = userLoginRequest.getUserPassword();
         if (StringUtils.isAnyBlank(userAccount, userPassword)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR,"注册信息不正确");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "注册信息不正确");
         }
         User user = userService.userLogin(userAccount, userPassword, request);
         if (user == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR,"用户不存在或密码错误");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在或密码错误");
         }
         return ResultUtil.success(user);
 
@@ -78,19 +81,20 @@ public class UserController {
 
     /**
      * 根据用户名称搜索用户
+     *
      * @param username 用户名称
      * @return 搜索结果
      */
     @GetMapping("/search")
-    public BaseResponse<List<User>> userSearch(@RequestParam String username,HttpServletRequest request) {
+    public BaseResponse<List<User>> userSearch(@RequestParam String username, HttpServletRequest request) {
         if (StringUtils.isEmpty(username)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR,"用户名为空");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户名为空");
         }
-        if(!isAdmin(request)){
-            throw new BusinessException(ErrorCode.NO_AUTH,"用户无权限");
+        if (!isAdmin(request)) {
+            throw new BusinessException(ErrorCode.NO_AUTH, "用户无权限");
         }
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        if(StringUtils.isNotBlank(username)) {
+        if (StringUtils.isNotBlank(username)) {
             queryWrapper.like("username", username);
         }
         List<User> users = userService.list(queryWrapper);
@@ -99,55 +103,108 @@ public class UserController {
 
     /**
      * 根据id删除用户
+     *
      * @param id
      * @return
      */
     @DeleteMapping("/delete")
-    public BaseResponse<Boolean> userDelete(@RequestBody long id ,HttpServletRequest request) {
-        if(id <= 0) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR,"用户ID不正确");
+    public BaseResponse<Boolean> userDelete(@RequestBody long id, HttpServletRequest request) {
+        if (id <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户ID不正确");
         }
-        if(!isAdmin(request)) {
-            throw new BusinessException(ErrorCode.NO_AUTH,"用户无权限");
+        if (!isAdmin(request)) {
+            throw new BusinessException(ErrorCode.NO_AUTH, "用户无权限");
         }
         return ResultUtil.success(userService.removeById(id));
     }
+
     /**
      * 检查是否为管理员
      */
     public Boolean isAdmin(HttpServletRequest request) {
         Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
-        User user = (User)userObj;
+        User user = (User) userObj;
         return user != null && user.getUserRole() == 1;
     }
 
     /**
      * 获取当前登录用户
+     *
      * @param request
-     * @return
+     * @return 当前登录用户
      */
     @GetMapping("/current")
     public BaseResponse<User> getUser(HttpServletRequest request) {
         Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
-        User currentUser = (User)userObj;
-        if(currentUser == null) {
-            throw new BusinessException(ErrorCode.NOT_LOGIN,"用户未登录");
+        User currentUser = (User) userObj;
+        if (currentUser == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN, "用户未登录");
         }
         long userId = currentUser.getId();
         User user = userService.getById(userId);
         User safetyUser = userService.getSafeUser(user);
         return ResultUtil.success(safetyUser);
     }
+
     /**
      * 用户注销
+     *
      * @param request
      * @return 注销成功返回1，失败返回0
      */
     @PostMapping("/logout")
     public BaseResponse<Integer> userLogout(HttpServletRequest request) {
-        if(request == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR,"注销用户不存在");
+        if (request == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "注销用户不存在");
         }
         return ResultUtil.success(userService.userLogout(request));
+    }
+
+    /**
+     * 根据标签搜索用户
+     *
+     * @param tagNameList 标签列表
+     * @return 搜索结果
+     */
+    @GetMapping("/search/tags")
+    public BaseResponse<List<User>> searchUserByTags(@RequestParam List<String> tagNameList) {
+        if (tagNameList == null || tagNameList.isEmpty()) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "标签列表为空");
+        }
+        List<User> users = userService.SearchUserByTags(tagNameList);
+        return ResultUtil.success(users);
+    }
+
+    /**
+     * 更新用户信息
+     *
+     * @param user
+     * @param request
+     * @return
+     */
+    @PostMapping("/update")
+    public BaseResponse<Integer> UpdateUser(@RequestBody User user, HttpServletRequest request) {
+        if (user == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        User loginuser = userService.getCurrentUser(request);
+        int result = userService.updateUser(user, loginuser);
+        return ResultUtil.success(result);
+    }
+
+    /**
+     * 根据登录用户信息推荐首页用户
+     *
+     * @param request
+     * @return 搜索结果
+     */
+    @GetMapping("/recommend")
+    public BaseResponse<Page<User>> userSearch(long pageSize, long pageNum, HttpServletRequest request) {
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        Page<User> userList = userService.page(new Page<>(pageNum, pageSize), queryWrapper);
+        //处理为安全用户信息
+        List<User> safeUserList = userList.getRecords().stream().map(user -> userService.getSafeUser(user)).collect(Collectors.toList());
+        userList.setRecords(safeUserList);
+        return ResultUtil.success(userList);
     }
 }

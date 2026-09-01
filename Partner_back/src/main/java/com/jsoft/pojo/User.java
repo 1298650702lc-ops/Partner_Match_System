@@ -4,6 +4,9 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
+
+import java.io.Serial;
+import java.io.Serializable;
 import java.util.Date;
 import lombok.Data;
 
@@ -13,7 +16,10 @@ import lombok.Data;
  */
 @TableName(value ="user")
 @Data
-public class User {
+public class User implements Serializable {
+    @Serial
+    private static final long serialVersionUID = 8476184570761842990L;
+
     /**
      * id
      */
@@ -66,7 +72,7 @@ public class User {
     private Date createTime;
 
     /**
-     * 
+     * 更新时间
      */
     private Date updateTime;
 
@@ -90,4 +96,10 @@ public class User {
      * 标签 json 列表
      */
     private String tags;
+
+    /**
+     * 用户签名
+     */
+    private String profile;
+
 }

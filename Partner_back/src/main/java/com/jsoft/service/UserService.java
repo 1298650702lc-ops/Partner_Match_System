@@ -4,6 +4,7 @@ import com.jsoft.pojo.User;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 
 /**
 * @author F4EN
@@ -44,5 +45,49 @@ public interface UserService extends IService<User> {
      * @return 注销正常返回1
      */
     int userLogout(HttpServletRequest request);
+
+    /**
+     * 根据标签搜索用户（缓存方式）
+     *
+     * @param tagList
+     * @return
+     */
+    List<User> SearchUserByTags(List<String> tagList);
+
+    /**
+     * 根据标签搜索用户（SQL方式）
+     * @param tagList
+     * @return
+     */
+    List<User> SearchUserByTagsBySQL(List<String> tagList);
+
+    /**
+     * 获取当前登录用户
+     * @param request
+     * @return 当前登录用户
+     */
+    User getCurrentUser(HttpServletRequest request);
+
+    /**
+     * 更新用户信息
+     * @param user
+     * @param loginuser
+     * @return 更新成功返回1，失败返回0
+     */
+    int updateUser(User user, User loginuser);
+
+    /**
+     * 是否为管理员
+     * @param request
+     * @return
+     */
+    boolean isAdmin(HttpServletRequest request);
+
+    /**
+     * 是否为管理员
+     * @param loginUser
+     * @return
+     */
+    boolean isAdmin(User loginUser);
 }
 

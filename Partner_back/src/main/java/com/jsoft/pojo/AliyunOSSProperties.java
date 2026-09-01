@@ -1,0 +1,14 @@
+package com.jsoft.pojo;
+
+import lombok.Data;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
+
+@Data
+@Component
+@ConfigurationProperties(prefix = "aliyun.oss") //配置项批量注入
+public class AliyunOSSProperties {
+    private String endpoint;
+    private String bucketName;
+    private String region;
+}

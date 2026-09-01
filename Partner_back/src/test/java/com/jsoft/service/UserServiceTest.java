@@ -1,8 +1,12 @@
 package com.jsoft.service;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 
 import com.jsoft.pojo.User;
+import org.junit.Assert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -71,5 +75,24 @@ public class UserServiceTest {
         userAccount = "yupi";
         result = userService.userRegister(userAccount, userPassword, checkPassword, "1234567");
         Assertions.assertTrue(result > 0);
+    }
+
+    @Test
+    void userLogin() {
+    }
+
+    @Test
+    void getSafeUser() {
+    }
+
+    @Test
+    void userLogout() {
+    }
+
+    @Test
+    void searchUserByTags() {
+        List<String> tagList = Arrays.asList("java","python");
+        List<User> users = userService.SearchUserByTagsBySQL(tagList);
+        Assert.assertNotNull(users);
     }
 }
