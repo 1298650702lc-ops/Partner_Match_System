@@ -83,10 +83,16 @@ const allTagList: TagCategory[] = [
   },
   {
     text: '方向',
-    children: ['C', 'C++', '人工智能', 'Java', 'Python', '前端', '后端', '全栈'].map((direction) => ({
-      text: direction,
-      id: direction,
-    })),
+    children: [
+      { text: 'C', id: 'C' },
+      { text: 'C++', id: 'C++' },
+      { text: '人工智能', id: '人工智能' },
+      { text: 'Java', id: 'java' },
+      { text: 'Python', id: 'python' },
+      { text: '前端', id: '前端' },
+      { text: '后端', id: '后端' },
+      { text: '全栈', id: '全栈' },
+    ],
   },
 ]
 
