@@ -1,15 +1,16 @@
 package com.jsoft.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import com.jsoft.Common.ErrorCode;
 import com.jsoft.exception.BusinessException;
 import com.jsoft.pojo.User;
 import com.jsoft.service.UserService;
 import com.jsoft.mapper.UserMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
@@ -19,6 +20,7 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -41,6 +43,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * 盐值，用于密码加密
      */
     private static final String SALT = "F4EN";
+    @Resource
+    private RedisTemplate<String, Object> redisTemplate;
 
     /**
      * 用户注册
@@ -191,38 +195,53 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     /**
-     * 根据标签查询用户--内存查询
+     * 根据标签查询用户--数据库分页 + Redis 缓存
      *
      * @param tagList 用户要拥有的标签
      * @return
      */
     @Override
-    public List<User> SearchUserByTags(List<String> tagList) {
+    public Page<User> SearchUserByTags(List<String> tagList, Long userId, Long pageSize, Long pageNum) {
         if (CollectionUtils.isEmpty(tagList)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "标签列表为空");
         }
-        // 2. 内存查询
-        //1.先查询所有用户
+        //缓存前先统一标签顺序
+        List<String> normalizedTags = tagList.stream().filter(StringUtils::hasText).map(String::trim).distinct().sorted().collect(Collectors.toList());
+        if (normalizedTags.isEmpty() || normalizedTags.size() > 5) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "标签清洗后数量错误");
+        }
+        String tagKey = String.format(
+                "user:search:tags:all:v2:%d:%s:%d:%d",
+                userId,
+                String.join(",", normalizedTags),
+                pageNum,
+                pageSize
+        );
+        //查询缓存
+        Page<User> cachedPage = (Page<User>) redisTemplate.opsForValue().get(tagKey);
+        if (cachedPage != null) {
+            return cachedPage;
+        }
+        //如果缓存中没有，就执行SQL查询
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        List<User> userList = userMapper.selectList(queryWrapper);
-        //2.在内存中判断是否包含要求的标签
+        //排除当前登录用户
+        queryWrapper.ne("id", userId);
+        // 只处理合法 JSON；每个选中标签都必须命中（AND 关系）。
         Gson gson = new Gson();
-        return userList.stream().filter(user -> {
-            String tagsStr = user.getTags();
-            if (StringUtils.isEmpty(tagsStr)) {
-                return false;
-            }
-            Set<String> tempTagList = gson.fromJson(tagsStr, new TypeToken<Set<String>>() {
-            }.getType());
-            //判空
-            tempTagList = Optional.ofNullable(tempTagList).orElse(new HashSet<>());
-            for (String tag : tagList) {
-                if (!tempTagList.contains(tag)) {
-                    return false;
-                }
-            }
-            return true;
-        }).map(this::getSafeUser).collect(Collectors.toList());
+        for (String tag : normalizedTags) {
+            queryWrapper.apply(
+                    "IF(JSON_VALID(tags), JSON_CONTAINS(tags, {0}), 0) = 1",
+                    gson.toJson(tag)
+            );
+        }
+        // 固定排序，避免分页时记录顺序变化。
+        queryWrapper.orderByAsc("id");
+        Page<User> userPage = this.page(new Page<>(pageNum, pageSize), queryWrapper);
+        //脱敏处理
+        Page<User> safeUserPage = userPage.setRecords(userPage.getRecords().stream().map(this::getSafeUser).collect(Collectors.toList()));
+        //写入缓存
+        redisTemplate.opsForValue().set(tagKey, safeUserPage, 30, TimeUnit.MINUTES);
+        return safeUserPage;
     }
 
     /**

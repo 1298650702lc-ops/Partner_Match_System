@@ -1,5 +1,6 @@
 package com.jsoft.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.jsoft.pojo.User;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -52,7 +53,7 @@ public interface UserService extends IService<User> {
      * @param tagList
      * @return
      */
-    List<User> SearchUserByTags(List<String> tagList);
+    Page<User> SearchUserByTags(List<String> tagList, Long userId, Long pageSize, Long pageNum);
 
     /**
      * 根据标签搜索用户（SQL方式）

@@ -1,7 +1,6 @@
 package com.jsoft.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.jsoft.Common.BaseResponse;
 import com.jsoft.Common.ErrorCode;
@@ -173,11 +172,19 @@ public class UserController {
      * @return 搜索结果
      */
     @GetMapping("/search/tags")
-    public BaseResponse<List<User>> searchUserByTags(@RequestParam List<String> tagNameList) {
+    public BaseResponse<Page<User>> searchUserByTags(
+            @RequestParam List<String> tagNameList,
+            @RequestParam(defaultValue = "8") long pageSize,
+            @RequestParam(defaultValue = "1") long pageNum,
+            HttpServletRequest request) {
         if (tagNameList == null || tagNameList.isEmpty()) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "标签列表为空");
         }
-        List<User> users = userService.SearchUserByTags(tagNameList);
+        if (pageSize <= 0 || pageNum <= 0 || pageSize > 50) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "分页参数不正确");
+        }
+        User userCurrent = userService.getCurrentUser(request);
+        Page<User> users = userService.SearchUserByTags(tagNameList, userCurrent.getId(), pageSize, pageNum);
         return ResultUtil.success(users);
     }
 
@@ -205,7 +212,10 @@ public class UserController {
      * @return 搜索结果
      */
     @GetMapping("/recommend")
-    public BaseResponse<Page<User>> userSearch(long pageSize, long pageNum, HttpServletRequest request) {
+    public BaseResponse<Page<User>> userSearch(
+            @RequestParam(defaultValue = "8") long pageSize,
+            @RequestParam(defaultValue = "1") long pageNum,
+            HttpServletRequest request) {
         if (pageSize <= 0 || pageNum <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "分页参数必须大于0");
         }
@@ -222,7 +232,7 @@ public class UserController {
         );
         Page<User> userList = (Page<User>) redisTemplate.opsForValue().get(redisKey);
         //如果没有缓存，执行查询并创建缓存
-        if(userList == null){
+        if (userList == null) {
             QueryWrapper<User> queryWrapper = new QueryWrapper<>();
             userList = userService.page(new Page<>(pageNum, pageSize), queryWrapper);
             // 先脱敏再写入缓存，避免 Redis 中保存用户密码等敏感字段。
@@ -233,9 +243,9 @@ public class UserController {
                 userList.setRecords(safeUserList);
             }
             try {
-                redisTemplate.opsForValue().set(redisKey, userList,30, TimeUnit.MINUTES);
+                redisTemplate.opsForValue().set(redisKey, userList, 30, TimeUnit.MINUTES);
             } catch (Exception e) {
-                log.error("redis set Key error",e);
+                log.error("redis set Key error", e);
             }
         }
         return ResultUtil.success(userList);
