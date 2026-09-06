@@ -1,4 +1,4 @@
-package com.jsoft.pojo;
+package com.jsoft.pojo.Dto;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;

@@ -1,10 +1,8 @@
 package com.jsoft.once;
-import java.util.Date;
 
 import com.jsoft.mapper.UserMapper;
-import com.jsoft.pojo.User;
+import com.jsoft.pojo.entity.User;
 import org.apache.commons.lang3.time.StopWatch;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;

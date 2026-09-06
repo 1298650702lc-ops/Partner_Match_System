@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.google.gson.Gson;
 import com.jsoft.Common.ErrorCode;
 import com.jsoft.exception.BusinessException;
-import com.jsoft.pojo.User;
+import com.jsoft.pojo.entity.User;
 import com.jsoft.service.UserService;
 import com.jsoft.mapper.UserMapper;
 import lombok.extern.slf4j.Slf4j;

@@ -6,7 +6,7 @@ import com.jsoft.Common.BaseResponse;
 import com.jsoft.Common.ErrorCode;
 import com.jsoft.Common.ResultUtil;
 import com.jsoft.exception.BusinessException;
-import com.jsoft.pojo.User;
+import com.jsoft.pojo.entity.User;
 import com.jsoft.pojo.request.UserLoginRequest;
 import com.jsoft.pojo.request.UserRegisterRequest;
 import com.jsoft.service.UserService;

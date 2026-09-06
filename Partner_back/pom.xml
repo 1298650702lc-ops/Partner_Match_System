@@ -132,6 +132,14 @@
             <artifactId>redisson</artifactId>
             <version>3.19.1</version>
         </dependency>
+        <!-- Source: https://mvnrepository.com/artifact/commons-beanutils/commons-beanutils -->
+        <!--        将后一个参数的内容移到前一个参数中 -->
+        <dependency>
+            <groupId>commons-beanutils</groupId>
+            <artifactId>commons-beanutils</artifactId>
+            <version>1.9.4</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 
     <build>

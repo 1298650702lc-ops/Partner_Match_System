@@ -1,7 +1,7 @@
 package com.jsoft.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.jsoft.pojo.Tag;
+import com.jsoft.pojo.entity.Tag;
 import com.jsoft.service.TagService;
 import com.jsoft.mapper.TagMapper;
 import org.springframework.stereotype.Service;

@@ -1,6 +1,6 @@
 package com.jsoft.service;
 
-import com.jsoft.pojo.Tag;
+import com.jsoft.pojo.entity.Tag;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 /**

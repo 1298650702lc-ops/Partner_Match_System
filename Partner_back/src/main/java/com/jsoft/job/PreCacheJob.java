@@ -2,7 +2,7 @@ package com.jsoft.job;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.jsoft.pojo.User;
+import com.jsoft.pojo.entity.User;
 import com.jsoft.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;

@@ -1,7 +1,7 @@
 package com.jsoft.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.jsoft.pojo.User;
+import com.jsoft.pojo.entity.User;
 import com.baomidou.mybatisplus.extension.service.IService;
 
 import javax.servlet.http.HttpServletRequest;
