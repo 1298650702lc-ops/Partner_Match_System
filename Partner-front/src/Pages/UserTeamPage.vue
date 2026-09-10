@@ -1,15 +1,16 @@
 <template>
-  <main class="team-page">
+  <main class="user-team-page">
     <header class="toolbar">
-      <h2>队伍</h2>
+      <h2>我的队伍</h2>
       <van-button icon="plus" type="primary" size="small" @click="router.push('/team/add')">创建队伍</van-button>
     </header>
-    <van-search v-model="searchText" placeholder="搜索队伍名称或描述" @search="loadTeams" @clear="clearSearch" />
     <van-loading v-if="loading" class="loading" vertical>加载中...</van-loading>
     <van-empty v-else-if="errorMessage" :description="errorMessage">
       <van-button size="small" @click="loadTeams">重试</van-button>
     </van-empty>
-    <van-empty v-else-if="!teams.length" description="暂无符合条件的队伍" />
+    <van-empty v-else-if="!teams.length" description="暂无加入或创建的队伍">
+      <van-button size="small" type="primary" @click="router.push('/team')">去队伍广场看看</van-button>
+    </van-empty>
     <template v-else>
       <article v-for="team in teams" :key="team.id" class="team-row">
         <div class="team-heading">
@@ -34,18 +35,12 @@
             <van-button size="small" type="danger" :disabled="busyId !== null"
               :loading="busyId === team.id && busyAction === 'disband'" @click="startDisband(team)">解散队伍</van-button>
           </template>
-          <!-- 普通成员：红色退出按钮 -->
-          <van-button v-else-if="joinedIds.has(team.id)" size="small" type="danger" :disabled="busyId !== null"
+          <!-- 普通成员：退出队伍 -->
+          <van-button v-else size="small" type="danger" :disabled="busyId !== null"
             :loading="busyId === team.id" @click="startQuit(team)">退出队伍</van-button>
-          <!-- 未加入：加入按钮 -->
-          <van-button v-else size="small" type="primary" :disabled="busyId !== null || team.status === 1"
-            :loading="busyId === team.id" @click="startJoin(team)">加入队伍</van-button>
         </div>
       </article>
     </template>
-    <van-dialog v-model:show="showPassword" title="加入加密队伍" show-cancel-button :before-close="confirmJoin">
-      <van-field v-model="password" type="password" label="队伍密码" placeholder="请输入队伍密码" maxlength="32" :disabled="busyId !== null" />
-    </van-dialog>
     <TeamMembersDialog v-if="memberTeam" :team="memberTeam" @close="memberTeam = null" />
   </main>
 </template>
@@ -61,45 +56,24 @@ import TeamMembersDialog from '../components/TeamMembersDialog.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
-const searchText = ref('')
 const teams = ref<Team[]>([])
 const loading = ref(true)
 const errorMessage = ref('')
 const busyId = ref<number | null>(null)
 // 正在进行的操作类型，用于让同一队伍的多个按钮只有被点击的那个显示 loading
-const busyAction = ref<'join' | 'quit' | 'disband' | null>(null)
-// 当前用户已加入的队伍 id 集合，来源于后端 /team/list/my/join，刷新页面后依然准确。
-const joinedIds = ref(new Set<number>())
-const showPassword = ref(false)
-const password = ref('')
-const selectedTeam = ref<Team | null>(null)
+const busyAction = ref<'quit' | 'disband' | null>(null)
 const memberTeam = ref<Team | null>(null)
 const statusNames: Record<number, string> = { 0: '公开', 1: '私有', 2: '加密' }
 let requestNumber = 0
 onBeforeUnmount(() => { requestNumber++ })
 
-// 拉取当前用户已加入的队伍 id。失败时返回 null，由调用方决定是否保留旧状态。
-const fetchJoinedIds = async (): Promise<Set<number> | null> => {
-  try {
-    const response = await myAxios.get('/team/list/my/join')
-    const body = response.data
-    if (body.code !== 0 || !Array.isArray(body.data)) return null
-    return new Set<number>((body.data as Team[]).map(team => team.id))
-  } catch {
-    return null
-  }
-}
-
+// 我加入 + 我创建的队伍：addTeam 会把队长写入 user_team，所以这一个接口覆盖两种情况
 const loadTeams = async () => {
   const currentRequest = ++requestNumber
   loading.value = true
   errorMessage.value = ''
   try {
-    // 并行请求：公开及加密队伍列表 + 我加入的队伍
-    const [response, joined] = await Promise.all([
-      myAxios.get('/team/list', { params: { searchText: searchText.value.trim() } }),
-      fetchJoinedIds(),
-    ])
+    const response = await myAxios.get('/team/list/my/join')
     if (currentRequest !== requestNumber) return
     const body = response.data
     if (body.code !== 0) {
@@ -109,7 +83,6 @@ const loadTeams = async () => {
     }
     if (!Array.isArray(body.data)) throw new Error('Invalid team list')
     teams.value = body.data
-    if (joined) joinedIds.value = joined
   } catch {
     if (currentRequest === requestNumber) {
       teams.value = []
@@ -119,7 +92,6 @@ const loadTeams = async () => {
     if (currentRequest === requestNumber) loading.value = false
   }
 }
-const clearSearch = () => { searchText.value = ''; void loadTeams() }
 const avatar = (team: Team) => team.createUser?.avatarUrl?.trim().replace(/^["']|["']$/g, '') || '/default-avatar.svg'
 const formatDate = (value?: string | null) => {
   if (!value) return '长期有效'
@@ -128,34 +100,7 @@ const formatDate = (value?: string | null) => {
 }
 const isOwner = (team: Team) => team.userId === userStore.user.value?.id
 
-const joinTeam = async (team: Team, secret?: string) => {
-  if (busyId.value !== null) return false
-  busyId.value = team.id
-  busyAction.value = 'join'
-  try {
-    const response = await myAxios.post('/team/join', { teamId: team.id, ...(secret ? { password: secret } : {}) })
-    const body = response.data
-    if (body.code !== 0 || body.data !== true) {
-      if (body.code !== 40100) showFailToast(body.description || body.message || '加入失败')
-      return false
-    }
-    joinedIds.value.add(team.id)
-    showSuccessToast('加入成功')
-    return true
-  } catch {
-    showFailToast('请求失败，请稍后重试')
-    return false
-  } finally {
-    busyId.value = null
-    busyAction.value = null
-  }
-}
-const startJoin = (team: Team) => {
-  if (team.status === 2) {
-    selectedTeam.value = team; password.value = ''; showPassword.value = true
-  } else { void joinTeam(team) }
-}
-// 退出队伍：二次确认 -> POST /team/quit -> 重新拉取列表和加入状态
+// 退出队伍：二次确认 -> POST /team/quit -> 重新拉取列表
 const quitTeam = async (team: Team) => {
   if (busyId.value !== null) return
   busyId.value = team.id
@@ -231,17 +176,11 @@ const toEdit = (team: Team) => {
   sessionStorage.setItem(TEAM_EDIT_STORAGE_KEY, JSON.stringify(team))
   router.push({ path: '/team/edit', query: { id: String(team.id) } })
 }
-const confirmJoin = async (action: string) => {
-  if (busyId.value !== null) return false
-  if (action !== 'confirm') return true
-  if (!password.value.trim()) { showFailToast('请输入队伍密码'); return false }
-  return selectedTeam.value ? joinTeam(selectedTeam.value, password.value) : false
-}
 onMounted(loadTeams)
 </script>
 
 <style scoped>
-.team-page { max-width: 900px; margin: auto; padding: 16px 0 24px; text-align: left; }
+.user-team-page { max-width: 900px; margin: auto; padding: 16px 0 24px; text-align: left; }
 .toolbar, .team-heading, .creator, .metadata, .actions { display: flex; align-items: center; gap: 12px; }
 .toolbar { padding: 0 16px 8px; justify-content: space-between; }
 h2 { margin: 0; font-size: 20px; letter-spacing: 0; }

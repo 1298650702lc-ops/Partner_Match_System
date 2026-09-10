@@ -60,6 +60,23 @@ const fetchCurrentUser = async (force = false): Promise<CurrentUser | null> => {
   }
 }
 
+/**
+ * 退出登录：调用后端 /user/logout 清理 Session，并清空前端缓存的用户信息。
+ * 无论后端是否成功，前端都会清理本地状态，避免出现"后端已失效但前端仍显示已登录"的情况。
+ */
+const logout = async (): Promise<boolean> => {
+  try {
+    const response = await myAxios.post('/user/logout')
+    const body = response.data
+    return body.code === 0
+  } catch (error) {
+    console.error('退出登录请求失败', error)
+    return false
+  } finally {
+    clearCurrentUser()
+  }
+}
+
 export const useUserStore = () => ({
   user,
   loading,
@@ -67,4 +84,5 @@ export const useUserStore = () => ({
   setCurrentUser,
   clearCurrentUser,
   fetchCurrentUser,
+  logout,
 })

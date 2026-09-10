@@ -11,6 +11,10 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class TeamQuery extends PageResult {
     /**
+     * id
+     */
+    private Long id;
+    /**
      * 队伍名称
      */
     private String name;
@@ -30,4 +34,8 @@ public class TeamQuery extends PageResult {
      * 状态 0 - 公开 1 - 加密 2 - 私有
      */
     private Integer status;
+    /**
+     * 搜索词(同时对队伍名称和描述进行模糊搜索)
+     */
+    private String searchText;
 }
