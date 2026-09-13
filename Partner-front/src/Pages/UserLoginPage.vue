@@ -21,6 +21,17 @@
       <van-button round block type="primary" native-type="submit">
         提交
       </van-button>
+      <van-button
+        class="register-button"
+        round
+        block
+        plain
+        type="primary"
+        native-type="button"
+        @click="router.push('/user/register')"
+      >
+        注册账号
+      </van-button>
     </div>
   </van-form>
 </template>
@@ -62,5 +73,8 @@ const onSubmit = async () => {
 </script>
 
 <style scoped>
+.register-button {
+  margin-top: 12px;
+}
 
 </style>

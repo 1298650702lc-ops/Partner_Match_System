@@ -5,6 +5,7 @@ import SearchPage from "../Pages/SearchPage.vue";
 import UserEditPage from "../Pages/UserEditPage.vue";
 import UserResultPage from "../Pages/SearchResultPage.vue";
 import UserLoginPage from "../Pages/UserLoginPage.vue";
+import UserRegisterPage from "../Pages/UserRegisterPage.vue";
 import TeamAddPage from "../Pages/TeamAddPage.vue";
 import TeamEditPage from "../Pages/TeamEditPage.vue";
 import UserTeamPage from "../Pages/UserTeamPage.vue";
@@ -17,6 +18,7 @@ const routes = [
     { path: '/user/edit', component: UserEditPage, meta: { requiresAuth: true } },
     { path: '/user/list', component: UserResultPage, meta: { requiresAuth: true } },
     { path: '/user/login', component: UserLoginPage },
+    { path: '/user/register', component: UserRegisterPage },
     { path: '/team/add', component: TeamAddPage, meta: { requiresAuth: true } },
     { path: '/team/edit', component: TeamEditPage, meta: { requiresAuth: true } },
     { path: '/user/team', component: UserTeamPage, meta: { requiresAuth: true } }

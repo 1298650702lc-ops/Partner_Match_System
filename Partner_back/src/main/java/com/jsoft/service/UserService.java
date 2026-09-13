@@ -1,6 +1,7 @@
 package com.jsoft.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.jsoft.pojo.Dto.UserVo;
 import com.jsoft.pojo.entity.User;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -90,5 +91,13 @@ public interface UserService extends IService<User> {
      * @return
      */
     boolean isAdmin(User loginUser);
+
+    /**
+     * 获取匹配的用户
+     * @param num
+     * @param loginuser
+     * @return
+     */
+    List<User> matchUsers(long num, User loginuser);
 }
 

@@ -1,20 +1,50 @@
 <template>
   <main class="index-page">
-    <UserCardList
-      :user-list="userList"
-      :loading="loading"
-      empty-description="暂无推荐伙伴"
-    />
+    <section class="match-panel">
+      <div class="match-panel__content">
+        <div>
+          <h2 class="match-panel__title">寻找适合你的伙伴</h2>
+          <p class="match-panel__description">根据你的标签，为你匹配最多 10 位伙伴</p>
+        </div>
+        <van-button
+          type="primary"
+          icon="like-o"
+          :loading="matchLoading"
+          :disabled="loading"
+          @click="loadMatchingUsers"
+        >
+          开始匹配
+        </van-button>
+      </div>
+    </section>
 
-    <section v-if="!loading && total > 0 && pageCount > 1" class="pagination-section">
-      <div class="pagination-summary">共 {{ total }} 位伙伴</div>
-      <van-pagination
-        v-model="pageNum"
-        :page-count="pageCount"
-        :disabled="loading"
-        mode="simple"
-        @change="handlePageChange"
+    <section v-if="matchHasLoaded" class="match-result-section">
+      <h2 class="section-title">为你匹配的伙伴</h2>
+      <UserCardList
+        :user-list="matchedUsers"
+        :loading="matchLoading"
+        empty-description="暂时没有找到合适的伙伴"
       />
+    </section>
+
+    <section class="recommend-section">
+      <h2 class="section-title">推荐伙伴</h2>
+      <UserCardList
+        :user-list="userList"
+        :loading="loading"
+        empty-description="暂无推荐伙伴"
+      />
+
+      <section v-if="!loading && total > 0 && pageCount > 1" class="pagination-section">
+        <div class="pagination-summary">共 {{ total }} 位伙伴</div>
+        <van-pagination
+          v-model="pageNum"
+          :page-count="pageCount"
+          :disabled="loading"
+          mode="simple"
+          @change="handlePageChange"
+        />
+      </section>
     </section>
   </main>
 </template>
@@ -59,6 +89,9 @@ const pageCount = ref(0)
 const total = ref(0)
 const loading = ref(false)
 const userList = ref<SearchUser[]>([])
+const matchLoading = ref(false)
+const matchHasLoaded = ref(false)
+const matchedUsers = ref<SearchUser[]>([])
 
 const parseTags = (tags: ApiUser['tags']): string[] => {
   if (Array.isArray(tags)) {
@@ -76,6 +109,44 @@ const parseTags = (tags: ApiUser['tags']): string[] => {
       : []
   } catch {
     return []
+  }
+}
+
+const normalizeUser = (user: ApiUser): SearchUser => ({
+  id: user.id,
+  username: user.username,
+  avatarUrl: user.avatarUrl?.trim() || undefined,
+  planetCode: user.planetCode,
+  profile: user.profile,
+  tags: parseTags(user.tags),
+})
+
+const loadMatchingUsers = async () => {
+  if (matchLoading.value) {
+    return
+  }
+
+  matchHasLoaded.value = true
+  matchLoading.value = true
+  try {
+    const response = await myAxios.get<ApiResponse<ApiUser[]>>('/user/match', {
+      params: { num: 10 },
+    })
+    const body = response.data
+
+    if (body.code !== 0 || !Array.isArray(body.data)) {
+      matchedUsers.value = []
+      showFailToast(body.message || '匹配伙伴失败')
+      return
+    }
+
+    matchedUsers.value = body.data.map(normalizeUser)
+  } catch (error) {
+    console.error('/user/match error', error)
+    matchedUsers.value = []
+    showFailToast('匹配请求失败，请稍后重试')
+  } finally {
+    matchLoading.value = false
   }
 }
 
@@ -103,14 +174,7 @@ const loadRecommendedUsers = async (requestedPage = pageNum.value) => {
     }
 
     const pageData = body.data
-    userList.value = (pageData.records ?? []).map((user) => ({
-      id: user.id,
-      username: user.username,
-      avatarUrl: user.avatarUrl?.trim() || undefined,
-      planetCode: user.planetCode,
-      profile: user.profile,
-      tags: parseTags(user.tags),
-    }))
+    userList.value = (pageData.records ?? []).map(normalizeUser)
     pageNum.value = pageData.current || requestedPage
     pageCount.value = pageData.pages || 0
     total.value = pageData.total || 0
@@ -133,6 +197,42 @@ onMounted(() => loadRecommendedUsers())
 <style scoped>
 .index-page {
   padding-bottom: 84px;
+}
+
+.match-panel,
+.match-result-section,
+.recommend-section {
+  padding: 16px;
+}
+
+.match-panel {
+  margin-bottom: 8px;
+  background: #f7f8fa;
+}
+
+.match-panel__content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.match-panel__title,
+.section-title {
+  margin: 0;
+  color: #323233;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.match-panel__description {
+  margin-top: 5px;
+  color: #969799;
+  font-size: 13px;
+}
+
+.section-title {
+  margin-bottom: 8px;
 }
 
 .pagination-section {

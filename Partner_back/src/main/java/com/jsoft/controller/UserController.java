@@ -6,6 +6,7 @@ import com.jsoft.Common.BaseResponse;
 import com.jsoft.Common.ErrorCode;
 import com.jsoft.Common.ResultUtil;
 import com.jsoft.exception.BusinessException;
+import com.jsoft.pojo.Dto.UserVo;
 import com.jsoft.pojo.entity.User;
 import com.jsoft.pojo.request.UserLoginRequest;
 import com.jsoft.pojo.request.UserRegisterRequest;
@@ -249,5 +250,20 @@ public class UserController {
             }
         }
         return ResultUtil.success(userList);
+    }
+
+    /**
+     * 获取匹配的用户
+     * @param num
+     * @param request
+     * @return
+     */
+    @GetMapping("/match")
+    public BaseResponse<List<User>> MatchUsers(long num, HttpServletRequest request) {
+        if (num <= 0 || num >20) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "匹配用户数量不正确");
+        }
+        User loginuser = (User) request.getSession().getAttribute(USER_LOGIN_STATE);
+        return ResultUtil.success(userService.matchUsers(num, loginuser));
     }
 }
